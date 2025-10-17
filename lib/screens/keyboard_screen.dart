@@ -16,30 +16,30 @@ class KeyboardScreen extends StatefulWidget {
 
 class _KeyboardScreenState extends State<KeyboardScreen> {
   final FocusNode _focusNode = FocusNode();
-  bool _isKeyboardVisible = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(_onFocusChange);
     final keyboardProvider = Provider.of<KeyboardProvider>(context, listen: false);
     final keywordProvider = Provider.of<KeywordProvider>(context, listen: false);
-    keyboardProvider.textEditingController.addListener(() {
-      keyboardProvider.updateHighlightedText(keywordProvider.keywords);
+
+    // Set initial keywords
+    keyboardProvider.updateKeywords(keywordProvider.keywords);
+
+    // Listen for keyword changes
+    keywordProvider.addListener(() {
+      keyboardProvider.updateKeywords(keywordProvider.keywords);
+    });
+
+    _focusNode.addListener(() {
+      setState(() {}); // Re-render to show/hide keyboard
     });
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
-  }
-
-  void _onFocusChange() {
-    setState(() {
-      _isKeyboardVisible = _focusNode.hasFocus;
-    });
   }
 
   @override
@@ -48,7 +48,7 @@ class _KeyboardScreenState extends State<KeyboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter Gboard Clone'),
+        title: const Text('Safe Keyboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -63,26 +63,23 @@ class _KeyboardScreenState extends State<KeyboardScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GestureDetector(
-              onTap: () {
-                FocusScope.of(context).requestFocus(_focusNode);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4.0),
-                ),
-                child: RichText(
-                  text: keyboardProvider.highlightedText,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: keyboardProvider.textEditingController,
+                focusNode: _focusNode,
+                autofocus: true,
+                expands: true,
+                maxLines: null,
+                decoration: const InputDecoration(
+                  hintText: 'Type here...',
+                  border: InputBorder.none,
                 ),
               ),
             ),
           ),
-          const Spacer(),
-          if (_isKeyboardVisible)
+          if (_focusNode.hasFocus)
             Consumer<KeyboardProvider>(
               builder: (context, keyboardProvider, child) {
                 return AnimatedContainer(

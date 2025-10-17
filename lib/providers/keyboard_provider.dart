@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import '../controllers/highlighting_text_editing_controller.dart';
 
 class KeyboardProvider with ChangeNotifier {
-  final TextEditingController _textEditingController = TextEditingController();
-  TextEditingController get textEditingController => _textEditingController;
-
-  TextSpan _highlightedText = const TextSpan();
-  TextSpan get highlightedText => _highlightedText;
+  final HighlightingTextEditingController _textEditingController =
+      HighlightingTextEditingController();
+  HighlightingTextEditingController get textEditingController =>
+      _textEditingController;
 
   bool _isShiftEnabled = false;
   bool get isShiftEnabled => _isShiftEnabled;
@@ -21,86 +21,36 @@ class KeyboardProvider with ChangeNotifier {
 
   void onKeyPress(String key) {
     final text = _textEditingController.text;
-    final textSelection = _textEditingController.selection;
-    final newText = text.replaceRange(
-      textSelection.start,
-      textSelection.end,
-      key,
+    final selection = _textEditingController.selection;
+    final newText = text.replaceRange(selection.start, selection.end, key);
+    _textEditingController.value = _textEditingController.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: selection.start + key.length),
+      composing: TextRange.empty,
     );
-    final myTextLength = key.length;
-    _textEditingController.text = newText;
-    _textEditingController.selection = textSelection.copyWith(
-      baseOffset: textSelection.start + myTextLength,
-      extentOffset: textSelection.start + myTextLength,
-    );
-    // No need to call notifyListeners() here, the listener on the controller will do the work.
   }
 
   void onDeletePress() {
-    final text = _textEditingController.text;
     final selection = _textEditingController.selection;
+    final text = _textEditingController.text;
 
     if (selection.isCollapsed) {
-      // No selection, delete character before cursor
-      if (selection.start > 0) {
-        final newText =
-            text.substring(0, selection.start - 1) + text.substring(selection.start);
-        _textEditingController.value = TextEditingValue(
-          text: newText,
-          selection: TextSelection.collapsed(offset: selection.start - 1),
-        );
-      }
+      if (selection.start == 0) return;
+      final newText =
+          text.substring(0, selection.start - 1) + text.substring(selection.start);
+      _textEditingController.value = _textEditingController.value.copyWith(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start - 1),
+        composing: TextRange.empty,
+      );
     } else {
-      // Selection, delete selected text
       final newText = text.replaceRange(selection.start, selection.end, '');
-      _textEditingController.value = TextEditingValue(
+      _textEditingController.value = _textEditingController.value.copyWith(
         text: newText,
         selection: TextSelection.collapsed(offset: selection.start),
+        composing: TextRange.empty,
       );
     }
-  }
-
-  void updateHighlightedText(List<String> keywords) {
-    final String text = _textEditingController.text;
-    const defaultStyle = TextStyle(color: Colors.black, fontSize: 18.0);
-
-    if (keywords.isEmpty || text.isEmpty) {
-      _highlightedText = TextSpan(text: text, style: defaultStyle);
-      notifyListeners();
-      return;
-    }
-
-    final List<TextSpan> spans = [];
-    final String pattern = "(${keywords.where((k) => k.isNotEmpty).map(RegExp.escape).join('|')})";
-    final RegExp regex = RegExp(pattern, caseSensitive: false);
-
-    final List<Match> matches = regex.allMatches(text).toList();
-
-    if (matches.isEmpty) {
-      _highlightedText = TextSpan(text: text, style: defaultStyle);
-      notifyListeners();
-      return;
-    }
-    
-    int lastMatchEnd = 0;
-    for (final Match match in matches) {
-      if (match.start > lastMatchEnd) {
-        spans.add(TextSpan(
-            text: text.substring(lastMatchEnd, match.start), style: defaultStyle));
-      }
-      spans.add(TextSpan(
-        text: text.substring(match.start, match.end),
-        style: defaultStyle.copyWith(backgroundColor: Colors.yellow),
-      ));
-      lastMatchEnd = match.end;
-    }
-
-    if (lastMatchEnd < text.length) {
-      spans.add(TextSpan(text: text.substring(lastMatchEnd), style: defaultStyle));
-    }
-
-    _highlightedText = TextSpan(children: spans);
-    notifyListeners();
   }
 
   void toggleShift() {
@@ -118,12 +68,14 @@ class KeyboardProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void showLanguageMenu() {
-    // This will be implemented later
-  }
+  void showLanguageMenu() {}
 
   void setLanguage(String language) {
     _currentLanguage = language;
     notifyListeners();
+  }
+
+  void updateKeywords(List<String> keywords) {
+    _textEditingController.keywords = keywords;
   }
 }
