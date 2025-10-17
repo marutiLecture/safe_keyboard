@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/theme_provider.dart';
-import 'keyword_settings_screen.dart';
+import '../providers/keyword_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final TextEditingController _keywordController = TextEditingController();
+
+  void _addKeyword(KeywordProvider provider) {
+    final keyword = _keywordController.text.trim();
+    if (keyword.isNotEmpty) {
+      provider.addKeyword(keyword);
+      _keywordController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,54 +27,57 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return ListView(
-            children: [
-              RadioListTile<ThemeMode>(
-                title: const Text('Light'),
-                value: ThemeMode.light,
-                groupValue: themeProvider.themeMode,
-                onChanged: (ThemeMode? value) {
-                  if (value != null) {
-                    themeProvider.setThemeMode(value);
-                  }
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: const Text('Dark'),
-                value: ThemeMode.dark,
-                groupValue: themeProvider.themeMode,
-                onChanged: (ThemeMode? value) {
-                  if (value != null) {
-                    themeProvider.setThemeMode(value);
-                  }
-                },
-              ),
-              RadioListTile<ThemeMode>(
-                title: const Text('System'),
-                value: ThemeMode.system,
-                groupValue: themeProvider.themeMode,
-                onChanged: (ThemeMode? value) {
-                  if (value != null) {
-                    themeProvider.setThemeMode(value);
-                  }
-                },
-              ),
-              const Divider(),
-              ListTile(
-                title: const Text('Keyword Filtering'),
-                subtitle: const Text('Manage your keywords'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const KeywordSettingsScreen()),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Highlight Keywords',
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10.0),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _keywordController,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter a keyword',
+                    ),
+                    onSubmitted: (_) =>
+                        _addKeyword(Provider.of<KeywordProvider>(context, listen: false)),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () =>
+                      _addKeyword(Provider.of<KeywordProvider>(context, listen: false)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20.0),
+            Expanded(
+              child: Consumer<KeywordProvider>(
+                builder: (context, provider, child) {
+                  return ListView.builder(
+                    itemCount: provider.keywords.length,
+                    itemBuilder: (context, index) {
+                      final keyword = provider.keywords[index];
+                      return ListTile(
+                        title: Text(keyword),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => provider.removeKeyword(keyword),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
