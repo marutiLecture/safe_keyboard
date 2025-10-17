@@ -18,10 +18,6 @@ class KeywordSettingsScreen extends StatelessWidget {
       }
     }
 
-    void removeKeyword(String keyword) {
-      keywordProvider.removeKeyword(keyword);
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Keyword Filtering'),
@@ -56,10 +52,6 @@ class KeywordSettingsScreen extends StatelessWidget {
                     final keyword = keywordProvider.keywords[index];
                     return ListTile(
                       title: Text(keyword),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => removeKeyword(keyword),
-                      ),
                     );
                   },
                 );

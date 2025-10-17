@@ -8,9 +8,4 @@ class KeywordProvider with ChangeNotifier {
     _keywords.add(keyword);
     notifyListeners();
   }
-
-  void removeKeyword(String keyword) {
-    _keywords.remove(keyword);
-    notifyListeners();
-  }
 }

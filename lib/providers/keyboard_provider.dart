@@ -33,59 +33,73 @@ class KeyboardProvider with ChangeNotifier {
       baseOffset: textSelection.start + myTextLength,
       extentOffset: textSelection.start + myTextLength,
     );
-    notifyListeners();
+    // No need to call notifyListeners() here, the listener on the controller will do the work.
   }
 
   void onDeletePress() {
     final text = _textEditingController.text;
-    final textSelection = _textEditingController.selection;
-    if (textSelection.start == 0 && textSelection.end == 0) return;
+    final selection = _textEditingController.selection;
 
-    final newText = text.replaceRange(
-      textSelection.start - 1,
-      textSelection.end,
-      '',
-    );
-    _textEditingController.text = newText;
-    _textEditingController.selection = textSelection.copyWith(
-      baseOffset: textSelection.start - 1,
-      extentOffset: textSelection.start - 1,
-    );
-    notifyListeners();
+    if (selection.isCollapsed) {
+      // No selection, delete character before cursor
+      if (selection.start > 0) {
+        final newText =
+            text.substring(0, selection.start - 1) + text.substring(selection.start);
+        _textEditingController.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: selection.start - 1),
+        );
+      }
+    } else {
+      // Selection, delete selected text
+      final newText = text.replaceRange(selection.start, selection.end, '');
+      _textEditingController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start),
+      );
+    }
   }
 
   void updateHighlightedText(List<String> keywords) {
-    final text = _textEditingController.text;
-    final List<TextSpan> textSpans = [];
+    final String text = _textEditingController.text;
+    const defaultStyle = TextStyle(color: Colors.black, fontSize: 18.0);
 
-    final lowerCaseText = text.toLowerCase();
+    if (keywords.isEmpty || text.isEmpty) {
+      _highlightedText = TextSpan(text: text, style: defaultStyle);
+      notifyListeners();
+      return;
+    }
+
+    final List<TextSpan> spans = [];
+    final String pattern = "(${keywords.where((k) => k.isNotEmpty).map(RegExp.escape).join('|')})";
+    final RegExp regex = RegExp(pattern, caseSensitive: false);
+
+    final List<Match> matches = regex.allMatches(text).toList();
+
+    if (matches.isEmpty) {
+      _highlightedText = TextSpan(text: text, style: defaultStyle);
+      notifyListeners();
+      return;
+    }
+    
     int lastMatchEnd = 0;
-
-    for (final keyword in keywords) {
-      if (keyword.isEmpty) continue;
-      final lowerCaseKeyword = keyword.toLowerCase();
-      int startIndex = lowerCaseText.indexOf(lowerCaseKeyword, lastMatchEnd);
-      while (startIndex != -1) {
-        if (startIndex > lastMatchEnd) {
-          textSpans.add(TextSpan(text: text.substring(lastMatchEnd, startIndex)));
-        }
-        final endIndex = startIndex + keyword.length;
-        textSpans.add(
-          TextSpan(
-            text: text.substring(startIndex, endIndex),
-            style: const TextStyle(backgroundColor: Colors.yellow),
-          ),
-        );
-        lastMatchEnd = endIndex;
-        startIndex = lowerCaseText.indexOf(lowerCaseKeyword, lastMatchEnd);
+    for (final Match match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+            text: text.substring(lastMatchEnd, match.start), style: defaultStyle));
       }
+      spans.add(TextSpan(
+        text: text.substring(match.start, match.end),
+        style: defaultStyle.copyWith(backgroundColor: Colors.yellow),
+      ));
+      lastMatchEnd = match.end;
     }
 
     if (lastMatchEnd < text.length) {
-      textSpans.add(TextSpan(text: text.substring(lastMatchEnd)));
+      spans.add(TextSpan(text: text.substring(lastMatchEnd), style: defaultStyle));
     }
 
-    _highlightedText = TextSpan(children: textSpans);
+    _highlightedText = TextSpan(children: spans);
     notifyListeners();
   }
 
