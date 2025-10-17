@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/keyboard_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/keyword_provider.dart';
 import 'screens/keyboard_screen.dart';
 
 void main() {
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => KeyboardProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => KeywordProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

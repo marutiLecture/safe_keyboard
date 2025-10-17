@@ -4,6 +4,9 @@ class KeyboardProvider with ChangeNotifier {
   final TextEditingController _textEditingController = TextEditingController();
   TextEditingController get textEditingController => _textEditingController;
 
+  TextSpan _highlightedText = const TextSpan();
+  TextSpan get highlightedText => _highlightedText;
+
   bool _isShiftEnabled = false;
   bool get isShiftEnabled => _isShiftEnabled;
 
@@ -48,6 +51,41 @@ class KeyboardProvider with ChangeNotifier {
       baseOffset: textSelection.start - 1,
       extentOffset: textSelection.start - 1,
     );
+    notifyListeners();
+  }
+
+  void updateHighlightedText(List<String> keywords) {
+    final text = _textEditingController.text;
+    final List<TextSpan> textSpans = [];
+
+    final lowerCaseText = text.toLowerCase();
+    int lastMatchEnd = 0;
+
+    for (final keyword in keywords) {
+      if (keyword.isEmpty) continue;
+      final lowerCaseKeyword = keyword.toLowerCase();
+      int startIndex = lowerCaseText.indexOf(lowerCaseKeyword, lastMatchEnd);
+      while (startIndex != -1) {
+        if (startIndex > lastMatchEnd) {
+          textSpans.add(TextSpan(text: text.substring(lastMatchEnd, startIndex)));
+        }
+        final endIndex = startIndex + keyword.length;
+        textSpans.add(
+          TextSpan(
+            text: text.substring(startIndex, endIndex),
+            style: const TextStyle(backgroundColor: Colors.yellow),
+          ),
+        );
+        lastMatchEnd = endIndex;
+        startIndex = lowerCaseText.indexOf(lowerCaseKeyword, lastMatchEnd);
+      }
+    }
+
+    if (lastMatchEnd < text.length) {
+      textSpans.add(TextSpan(text: text.substring(lastMatchEnd)));
+    }
+
+    _highlightedText = TextSpan(children: textSpans);
     notifyListeners();
   }
 
